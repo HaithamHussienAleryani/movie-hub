@@ -12,6 +12,7 @@ const MovieCard = ({ movie }) => {
         }
         alt={title}
       />
+      <h4 className={"text-white"}>{title}</h4>
     </div>
   );
 };
