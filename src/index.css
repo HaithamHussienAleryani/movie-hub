@@ -1,11 +1,9 @@
-
 @import url("https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&display=swap");
 @import url("https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap");
 
 @import "tailwindcss";
 
 @theme {
-
   --color-primary: #030014;
 
   --color-light-100: #cecefb;
@@ -115,7 +113,7 @@
     }
 
     & .content {
-      @apply mt-2 flex flex-row items-center flex-wrap gap-2;
+      @apply mt-2 flex flex-row items-center  flex-wrap gap-3;
     }
 
     & .rating {

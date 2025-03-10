@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from "react";
 import Search from "./components/Search.jsx";
 import MovieCard from "./components/MovieCard.jsx";
+import { useDebounce } from "react-use";
+import { getTrendingMovies, updateSearchCount } from "./appwrite.js";
 
 const API_URL = "https://api.themoviedb.org/3";
 
@@ -16,16 +18,21 @@ const API_OPTIONS = {
 
 const App = () => {
   const [searchTerm, setSearchTerm] = useState("");
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
+  useDebounce(() => setDebouncedSearchTerm(searchTerm), 500, [searchTerm]);
   const [movieList, setMovieList] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [trendingMovies, setTrendingMovies] = useState([]);
 
-  const fetchMovies = async () => {
+  const fetchMovies = async (query) => {
     setIsLoading(true);
     setError(null);
     setMovieList([]);
     try {
-      const endpoint = `${API_URL}/discover/movie?sort_by=popularity.desc`;
+      const endpoint = query
+        ? `${API_URL}/search/movie?query=${encodeURIComponent(query)}`
+        : `${API_URL}/discover/movie?sort_by=popularity.desc`;
       const response = await fetch(endpoint, API_OPTIONS);
       if (!response.ok) {
         setMovieList([]);
@@ -33,6 +40,10 @@ const App = () => {
       }
       const data = await response.json();
       setMovieList(data.results || []);
+
+      if (query && data.results.length > 0) {
+        await updateSearchCount(query, data.results[0]);
+      }
     } catch (err) {
       setError(`Error fetching movies... ${err}`);
     } finally {
@@ -40,8 +51,22 @@ const App = () => {
     }
   };
 
+  const loadTrendingMovies = async () => {
+    try {
+      const movies = await getTrendingMovies();
+      setTrendingMovies(movies);
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
   useEffect(() => {
-    fetchMovies();
+    fetchMovies(debouncedSearchTerm);
+    return () => {};
+  }, [debouncedSearchTerm]);
+
+  useEffect(() => {
+    loadTrendingMovies();
     return () => {};
   }, []);
 
@@ -55,9 +80,24 @@ const App = () => {
             Find <span className={"text-gradient"}>Movies</span> You'll Enjoy
             Without The Hassle
           </h1>
+          <Search setSearchTerm={setSearchTerm} searchTerm={searchTerm} />
         </header>
-        <Search setSearchTerm={setSearchTerm} searchTerm={searchTerm} />
-        <div className={"all-movies"}>
+
+        {trendingMovies.length > 0 && (
+          <section className={"trending"}>
+            <h2>Trending Movies</h2>
+            <ul>
+              {trendingMovies.map((movie, index) => (
+                <li key={movie.id}>
+                  <p>{index + 1}</p>
+                  <img src={movie.poster} alt={movie.name} />
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
+
+        <section className={"all-movies"}>
           <h2 className={"mt-10 mb-5"}>All Movies</h2>
           {isLoading ? (
             <h3 className={"text-red-500"}>Loading ... </h3>
@@ -70,7 +110,7 @@ const App = () => {
               ))}
             </ul>
           )}
-        </div>
+        </section>
       </div>
     </main>
   );
